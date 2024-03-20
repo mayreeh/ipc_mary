@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Population by Phase Over Different Years</title>
+    <style>
+        canvas {
+            background-color: #f0f8ff;
+            height:400px;
+            width:400px;
+        }
+    </style>
+    <script src="chart.js"></script>
+</head>
+<body>
+<h4>Population by Phase Over Different Years</h4>
+<!-- Country information -->
+<div id="countryInfo"></div>
+<canvas id="barChart"></canvas>
+<script>
+    // Function to fetch JSON data from IPC API
+    async function fetchData() {
+        try {
+            const params = {
+                country: 'AF',
+                start: '2020',
+                end: '2020',
+                key: '8a7f40a0-5697-48ca-b882-32faf5048e45'
+            };
+            const url = new URL('https://api.ipcinfo.org/country');
+            url.search = new URLSearchParams(params).toString();
+
+            // Fetching data
+            const response = await fetch(url);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            //Error in case no data is fetched
+            console.error('Error fetching data:', error);
+        }
+    }
+
+    // Function to extract data for each phase
+    function extractDataForPhase(data, phase) {
+        return data.map(entry => {
+            const phaseData = entry.phases.find(p => p.phase === phase);
+            return phaseData ? phaseData.population : 0;
+        });
+    }
+
+    // Function to create the chart
+    async function createChart() {
+        const jsonData = await fetchData();
+        if (!jsonData) return;
+
+        //Country information
+        const countryInfo = document.getElementById('countryInfo');
+        countryInfo.innerHTML = `<p>Country: ${jsonData[0].country}</p>`;
+
+        // Extracting labels (years)
+        const labels = jsonData.map(entry => entry.year);
+
+        // Extracting  colors
+        const colors = jsonData.map(entry => entry.phases.map(phase => phase.color));
+
+        //datasets for each phase
+        const datasets = Array.from({ length: 5 }, (_, i) => ({
+            label: `Phase ${i + 1}`,
+            backgroundColor: colors.map(colorSet => colorSet[i]),
+            data: extractDataForPhase(jsonData, i + 1)
+        }));
+
+        //Creating chart
+        var ctx = document.getElementById('barChart').getContext('2d');
+        var barChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                scales: {
+                    x: {
+                        stacked: true,
+                        title: {
+                            display: true,
+                            text: 'Year'
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        title: {
+                            display: true,
+                            text: 'Population'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+   createChart();
+</script>
+</body>
+</html>
+
